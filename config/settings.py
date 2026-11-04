@@ -2,12 +2,13 @@
 from pathlib import Path
 from datetime import timedelta
 import os
+
 import dj_database_url
 from dotenv import load_dotenv
 
-# --------------------------------------------------
+# ==================================================
 # BASE CONFIGURATION
-# --------------------------------------------------
+# ==================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -23,17 +24,17 @@ if not DEBUG and SECRET_KEY == "dev-only-change-me":
     )
 
 ALLOWED_HOSTS = [
-    h.strip()
-    for h in os.getenv(
+    host.strip()
+    for host in os.getenv(
         "ALLOWED_HOSTS",
         "localhost,127.0.0.1"
     ).split(",")
-    if h.strip()
+    if host.strip()
 ]
 
-# --------------------------------------------------
+# ==================================================
 # APPLICATIONS
-# --------------------------------------------------
+# ==================================================
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -43,9 +44,15 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    # Cloudinary
+    "cloudinary_storage",
+    "cloudinary",
+
+    # Third-party applications
     "rest_framework",
     "corsheaders",
 
+    # Project applications
     "apps.accounts",
     "apps.products",
     "apps.categories",
@@ -56,12 +63,13 @@ INSTALLED_APPS = [
     "apps.reviews",
     "apps.inventory",
 
+    # JWT token blacklist
     "rest_framework_simplejwt.token_blacklist",
 ]
 
-# --------------------------------------------------
+# ==================================================
 # MIDDLEWARE
-# --------------------------------------------------
+# ==================================================
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -77,9 +85,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# --------------------------------------------------
+# ==================================================
 # URL CONFIGURATION
-# --------------------------------------------------
+# ==================================================
 
 ROOT_URLCONF = "config.urls"
 
@@ -100,11 +108,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# --------------------------------------------------
+# ==================================================
 # DATABASE CONFIGURATION
 # Local: SQLite
-# Render: PostgreSQL
-# --------------------------------------------------
+# Production: Render PostgreSQL
+# ==================================================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -124,15 +132,15 @@ else:
         }
     }
 
-# --------------------------------------------------
+# ==================================================
 # CUSTOM USER MODEL
-# --------------------------------------------------
+# ==================================================
 
 AUTH_USER_MODEL = "accounts.User"
 
-# --------------------------------------------------
+# ==================================================
 # PASSWORD VALIDATION
-# --------------------------------------------------
+# ==================================================
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -149,9 +157,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# --------------------------------------------------
+# ==================================================
 # LANGUAGE AND TIME
-# --------------------------------------------------
+# ==================================================
 
 LANGUAGE_CODE = "en-us"
 
@@ -161,13 +169,18 @@ USE_I18N = True
 
 USE_TZ = True
 
-# --------------------------------------------------
-# STATIC AND MEDIA FILES
-# --------------------------------------------------
+# ==================================================
+# STATIC FILES
+# ==================================================
 
 STATIC_URL = "/static/"
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# ==================================================
+# MEDIA FILES
+# Cloudinary stores uploaded images online
+# ==================================================
 
 MEDIA_URL = "/media/"
 
@@ -175,40 +188,50 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 STORAGES = {
     "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
+# ==================================================
+# CLOUDINARY CONFIGURATION
+# ==================================================
+
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY", ""),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET", ""),
+}
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# --------------------------------------------------
+# ==================================================
 # CORS CONFIGURATION
-# --------------------------------------------------
+# ==================================================
 
 CORS_ALLOWED_ORIGINS = [
-    o.strip()
-    for o in os.getenv(
+    origin.strip()
+    for origin in os.getenv(
         "CORS_ALLOWED_ORIGINS",
         "http://localhost:5173",
     ).split(",")
-    if o.strip()
+    if origin.strip()
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    o.strip()
-    for o in os.getenv(
+    origin.strip()
+    for origin in os.getenv(
         "CSRF_TRUSTED_ORIGINS",
         "http://localhost:5173",
     ).split(",")
-    if o.strip()
+    if origin.strip()
 ]
 
-# --------------------------------------------------
+# ==================================================
 # DJANGO REST FRAMEWORK
-# --------------------------------------------------
+# ==================================================
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -234,18 +257,18 @@ REST_FRAMEWORK = {
     },
 }
 
-# --------------------------------------------------
+# ==================================================
 # JWT CONFIGURATION
-# --------------------------------------------------
+# ==================================================
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
-# --------------------------------------------------
+# ==================================================
 # PRODUCTION SECURITY
-# --------------------------------------------------
+# ==================================================
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = (
@@ -259,24 +282,24 @@ if not DEBUG:
 
     CSRF_COOKIE_SECURE = True
 
-# --------------------------------------------------
+# ==================================================
 # FRONTEND URL
-# --------------------------------------------------
+# ==================================================
 
 FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
     "http://localhost:5173",
 )
 
-# --------------------------------------------------
+# ==================================================
 # GOOGLE AUTHENTICATION
-# --------------------------------------------------
+# ==================================================
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 
-# --------------------------------------------------
+# ==================================================
 # EMAIL CONFIGURATION
-# --------------------------------------------------
+# ==================================================
 
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",
