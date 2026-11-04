@@ -1,4 +1,3 @@
-
 from pathlib import Path
 from datetime import timedelta
 import os
@@ -16,6 +15,9 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-change-me")
 
+# DEBUG must be defined BEFORE it is used anywhere below.
+# Local PC  : set DEBUG=True in backend\.env
+# Render    : do NOT set DEBUG (it stays False)
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 if not DEBUG and SECRET_KEY == "dev-only-change-me":
@@ -23,14 +25,16 @@ if not DEBUG and SECRET_KEY == "dev-only-change-me":
         "Set a real SECRET_KEY in your environment variables."
     )
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv(
-        "ALLOWED_HOSTS",
-        "localhost,127.0.0.1"
-    ).split(",")
-    if host.strip()
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"] + [
+    h.strip()
+    for h in os.getenv("ALLOWED_HOSTS", "").split(",")
+    if h.strip()
 ]
+
+# Render sets this variable automatically, so the live host is always allowed
+RENDER_HOST = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_HOST:
+    ALLOWED_HOSTS.append(RENDER_HOST)
 
 # ==================================================
 # APPLICATIONS
@@ -110,8 +114,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # ==================================================
 # DATABASE CONFIGURATION
-# Local: SQLite
-# Production: Render PostgreSQL
+# Local: SQLite (when DATABASE_URL is not set)
+# Production: Render PostgreSQL (DATABASE_URL must be set)
 # ==================================================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -125,6 +129,12 @@ if DATABASE_URL:
         )
     }
 else:
+    # On Render this would lose data on every deploy, so stop with a clear message
+    if not DEBUG:
+        raise RuntimeError(
+            "DATABASE_URL is missing. Add it in Render > Environment."
+        )
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -178,8 +188,27 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ==================================================
+# CLOUDINARY CONFIGURATION
+# Must come BEFORE the STORAGES block below
+# ==================================================
+
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY", ""),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET", ""),
+}
+
+# True only when all 3 Cloudinary keys have a value
+USE_CLOUDINARY = all(CLOUDINARY_STORAGE.values())
+
+if not DEBUG and not USE_CLOUDINARY:
+    raise RuntimeError(
+        "Cloudinary keys are missing. Add them in Render > Environment."
+    )
+
+# ==================================================
 # MEDIA FILES
-# Cloudinary stores uploaded images online
+# Live site: Cloudinary. Your PC: local media folder.
 # ==================================================
 
 MEDIA_URL = "/media/"
@@ -188,21 +217,15 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 STORAGES = {
     "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        "BACKEND": (
+            "cloudinary_storage.storage.MediaCloudinaryStorage"
+            if USE_CLOUDINARY
+            else "django.core.files.storage.FileSystemStorage"
+        ),
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
-}
-
-# ==================================================
-# CLOUDINARY CONFIGURATION
-# ==================================================
-
-CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", ""),
-    "API_KEY": os.getenv("CLOUDINARY_API_KEY", ""),
-    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET", ""),
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -212,7 +235,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ==================================================
 
 CORS_ALLOWED_ORIGINS = [
-    origin.strip()
+    origin.strip().rstrip("/")
     for origin in os.getenv(
         "CORS_ALLOWED_ORIGINS",
         "http://localhost:5173",
@@ -221,7 +244,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
+    origin.strip().rstrip("/")
     for origin in os.getenv(
         "CSRF_TRUSTED_ORIGINS",
         "http://localhost:5173",
@@ -268,6 +291,9 @@ SIMPLE_JWT = {
 
 # ==================================================
 # PRODUCTION SECURITY
+# Runs only when DEBUG is False (on Render).
+# On your PC (DEBUG=True) none of this is active,
+# so http://127.0.0.1:8000 works normally.
 # ==================================================
 
 if not DEBUG:

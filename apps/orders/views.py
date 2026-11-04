@@ -129,6 +129,14 @@ class CheckoutSummaryView(APIView):
         data = build_payload(request, entries)
         data["prefill"] = {"first_name": u.first_name, "last_name": u.last_name,
                            "email": u.email, "phone": getattr(u, "phone", "")}
+        ps = OrderPageSettings.objects.first() or OrderPageSettings()
+        data["checkout"] = {
+            "title": ps.checkout_title, "summary_title": ps.order_summary_title,
+            "complete_title": ps.complete_title, "personal_title": ps.personal_title,
+            "payment_title": ps.payment_title, "cod_label": ps.cod_label,
+            "shipping_title": ps.shipping_title, "cancel_text": ps.cancel_text,
+            "order_button_text": ps.order_button_text,
+        }
         return Response(data)
 
 

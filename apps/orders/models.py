@@ -123,6 +123,16 @@ class OrderPageSettings(models.Model):
     transit_pending_text = models.CharField(max_length=60, default="Not in transit yet")
     transit_default_text = models.CharField(max_length=60, default="On the way to you")
     delivered_pending_text = models.CharField(max_length=60, default="Not delivered yet")
+        # NEW for the Checkout page
+    checkout_title = models.CharField(max_length=60, default="Checkout")
+    order_summary_title = models.CharField(max_length=60, default="Order Summary")
+    complete_title = models.CharField(max_length=60, default="Complete Your Order")
+    personal_title = models.CharField(max_length=60, default="Personal Details")
+    payment_title = models.CharField(max_length=60, default="Payment Details")
+    cod_label = models.CharField(max_length=40, default="Cash on Delivery")
+    shipping_title = models.CharField(max_length=60, default="Shipping Address")
+    cancel_text = models.CharField(max_length=30, default="Cancel")
+    order_button_text = models.CharField(max_length=30, default="Order Now")
 
     def save(self, *args, **kwargs):
         self.pk = 1  # only one row allowed
