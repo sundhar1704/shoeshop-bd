@@ -248,20 +248,22 @@ class FiltersView(APIView):
                 {"key": "rating", "label": "Overall Rating"},
             ],
         })
-
 # ---------------- NEW: Product details API ----------------
+import re as _re
+from .models import ProductPageSettings, PayLogo
+
+
 class ShopProductDetailView(APIView):
-    """One product with images, colours, sizes and stock."""
+    """One product with images, colours, sizes, stock, reviews, logos and page texts."""
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug):
         # Try finding by exact slug first, then fallback to matching ID if slug has a suffix
         p = Product.objects.filter(is_active=True, slug=slug).first()
         if not p:
-            # Try matching slug without trailing numbers or grab first active product matching similar text
             base_slug = slug.rsplit("-", 1)[0]
             p = Product.objects.filter(is_active=True, slug__startswith=base_slug).first()
-        
+
         if not p:
             return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -273,6 +275,26 @@ class ShopProductDetailView(APIView):
         )
 
         images = sorted(p.images.all(), key=lambda i: (not i.is_main, i.id))
+
+        # only approved (active) reviews are public
+        reviews = list(p.reviews.filter(is_active=True))
+        review_count = len(reviews)
+        if review_count:
+            avg_rating = round(sum(r.overall for r in reviews) / review_count, 1)
+        else:
+            avg_rating = float(p.rating)
+
+        def url(f):
+            return request.build_absolute_uri(f.url) if f else None
+
+        # WhatsApp link from the Home content number (empty while it is still the XXXX placeholder)
+        digits = _re.sub(r"\D", "", HomeContent.load().whatsapp or "")
+        if len(digits) == 10:
+            digits = "91" + digits
+        whatsapp_link = f"https://wa.me/{digits}" if len(digits) >= 11 else ""
+
+        pg = ProductPageSettings.load()
+
         return Response({
             "id": p.id,
             "name": p.name,
@@ -283,11 +305,38 @@ class ShopProductDetailView(APIView):
             "discount_percent": p.discount_percent,
             "final_price": p.final_price,
             "rating": p.rating,
+            "avg_rating": avg_rating,
+            "review_count": review_count,
             "is_multicolor": p.is_multicolor,
             "category_slug": p.category.slug if p.category else "",
             "images": [request.build_absolute_uri(i.image.url) for i in images if i.image],
             "colors": [{"id": c.id, "name": c.name, "hex": c.hex_code} for c in p.colors.all()],
-            "sizes": [{"id": v.id, "size": v.size, "color": v.color or "",
-            "stock": v.stock}
+            "sizes": [{"id": v.id, "size": v.size, "color": v.color or "", "stock": v.stock}
                       for v in p.variants.all()],
+            "reviews": [{
+                "id": r.id,
+                "name": r.reviewer_name,
+                "location": r.location,
+                "avatar": url(r.avatar) if r.avatar else None,
+                "title": r.title,
+                "text": r.text,
+                "overall": r.overall,
+                "fit": r.fit,
+                "comfort": r.comfort,
+                "value_for_money": r.value_for_money,
+                "quality": r.quality,
+                "would_recommend": r.would_recommend,
+            } for r in reviews],
+            "logos": [{"place": l.place, "image": url(l.image)}
+                      for l in PayLogo.objects.filter(is_active=True) if l.image],
+            "page": {
+                "secure_title": pg.secure_title,
+                "size_help_text": pg.size_help_text,
+                "info_1": pg.info_1,
+                "info_2": pg.info_2,
+                "info_3": pg.info_3,
+                "details_title": pg.details_title,
+                "reviews_title": pg.reviews_title,
+            },
+            "whatsapp_link": whatsapp_link,
         })
