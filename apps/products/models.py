@@ -300,3 +300,55 @@ class Enquiry(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.email}"
+
+
+# ---------------- NEW: Product detail page ----------------
+class ProductPageSettings(models.Model):
+    secure_title = models.CharField(max_length=60, default="Secure Checkout With")
+    size_help_text = models.CharField(max_length=100, default="Unsure about your size? Let's connect")
+    info_1 = models.CharField(max_length=80, default="COD Available")
+    info_2 = models.CharField(max_length=80, default="24 Hour Dispatch")
+    info_3 = models.CharField(max_length=80, default="7 Days easy return & exchange")
+    details_title = models.CharField(max_length=60, default="Product Details")
+    reviews_title = models.CharField(max_length=60, default="Reviews:")
+
+    @classmethod
+    def load(cls):
+        return cls.objects.get_or_create(pk=1)[0]
+
+    class Meta:
+        verbose_name_plural = "Product page settings"
+
+
+class PayLogo(models.Model):
+    PLACES = [("buynow", "Next to Buy Now button"), ("secure", "Secure Checkout box")]
+    place = models.CharField(max_length=10, choices=PLACES)
+    image = models.ImageField(upload_to="paylogos/")
+    order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["place", "order", "id"]
+
+
+class ProductReview(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    reviewer_name = models.CharField(max_length=80)
+    location = models.CharField(max_length=80, blank=True)
+    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    title = models.CharField(max_length=100, blank=True)
+    text = models.TextField()
+    overall = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    fit = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    comfort = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    value_for_money = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    quality = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    would_recommend = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.reviewer_name} - {self.product.name}"

@@ -5,6 +5,7 @@ from .models import (
     Product, ProductImage, ProductVariant, Banner, HomeContent, Subscriber,
     AboutPage, AboutFeature, ContactPage, Enquiry,
     Style, SubStyle, Brand, Color, SizeOption, OfferLink,  # NEW
+    ProductPageSettings, PayLogo, ProductReview,  # NEW
 )
 
 
@@ -88,6 +89,29 @@ class OfferLinkAdmin(admin.ModelAdmin):
     list_editable = ("order", "is_active")
 
 
+
+# ---------------- NEW: product details page ----------------
+
+@admin.register(ProductPageSettings)
+class ProductPageSettingsAdmin(SingleRowAdmin):  # only one row allowed
+    pass
+
+
+@admin.register(PayLogo)
+class PayLogoAdmin(admin.ModelAdmin):
+    list_display = ("place", "order", "is_active")
+    list_filter = ("place", "is_active")
+    list_editable = ("order", "is_active")
+
+
+@admin.register(ProductReview)
+class ProductReviewAdmin(admin.ModelAdmin):
+    list_display = ("reviewer_name", "product", "overall", "would_recommend", "is_active", "created_at")
+    list_filter = ("product", "overall", "is_active")
+    search_fields = ("reviewer_name", "text")
+    list_editable = ("is_active",)
+
+
 # ---------------- OLD pages (unchanged) ----------------
 
 @admin.register(AboutPage)
@@ -131,7 +155,7 @@ ADMIN_SECTIONS = [
     ("3. Contact Page", "contact_page", ["ContactPage", "Enquiry"]),
     ("4. Shop Products", "shop_products", ["Category", "Product"]),
     ("5. Menus and Filters", "menus_filters", ["Style", "Brand", "Color", "SizeOption", "OfferLink"]),
-    ("6. Product Details Page", "product_page", ["ProductPageSettings", "ProductHighlight", "PaymentLogo", "ProductReview"]),
+    ("6. Product Details Page", "product_page", ["ProductPageSettings", "PayLogo", "ProductReview"]),
     ("7. Cart Page", "cart_page", ["CartPageSettings", "ExpressCheckoutOption", "Cart"]),
     ("8. Orders", "orders_section", ["Order", "OrderPageSettings"]),
     ("9. Customers and Login", "customers_login", ["User", "LoginActivity"]),
@@ -154,6 +178,9 @@ DISPLAY_NAMES = {
     "Color": "Colors",
     "SizeOption": "Size options",
     "OfferLink": "Offers menu lines",
+    "ProductPageSettings": "Product page texts (one row)",
+    "PayLogo": "Payment logos (Buy Now and Secure Checkout)",
+    "ProductReview": "Product reviews",
     "User": "Users",
     "LoginActivity": "Login activities",
     "Group": "Groups",
