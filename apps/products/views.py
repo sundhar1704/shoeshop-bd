@@ -190,6 +190,8 @@ class ShopProductListView(generics.ListAPIView):
             qs = qs.filter(variants__size__in=sizes)
         if p.get("q"):
             qs = qs.filter(name__icontains=p["q"].strip())
+        if p.get("offer") == "true":
+            qs = qs.filter(discount_percent__gt=0)
         order = self.SORTS.get(p.get("sort"), self.SORTS["featured"])
         return qs.distinct().order_by(*order, "-id")
 
